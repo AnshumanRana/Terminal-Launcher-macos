@@ -1,6 +1,6 @@
 # Mac Terminal App Launcher 🚀
 
-A Java program that automatically opens Terminal on Mac startup and lets you launch apps like VSCode and Brave Browser with simple commands.
+A Java program that automatically opens Terminal on Mac startup and lets you launch apps with simple commands.
 
 ---
 
@@ -9,6 +9,7 @@ A Java program that automatically opens Terminal on Mac startup and lets you lau
 - Opens automatically every time your Mac boots
 - Listens for simple text commands in Terminal
 - Type `code` → launches **VSCode + Brave** instantly
+- Supports combo commands to launch multiple apps at once
 - Fully customizable to launch any app you want
 
 ---
@@ -17,8 +18,7 @@ A Java program that automatically opens Terminal on Mac startup and lets you lau
 
 - MacBook running macOS
 - Java installed (JDK 11 or higher)
-- VSCode installed in `/Applications`
-- Brave Browser installed in `/Applications`
+- Apps installed in `/Applications`
 
 ### Check if Java is installed:
 ```bash
@@ -64,6 +64,7 @@ import java.util.Scanner;
 public class Applauncher {
 
     public static void main(String[] args) {
+
         Scanner sc = new Scanner(System.in);
         System.out.println("======== App Launcher ========");
         System.out.println("Type 'code' to launch VSCode + Brave. Type 'exit' to quit.");
@@ -84,11 +85,48 @@ public class Applauncher {
 
     public static void handleCommand(String command) {
         switch (command) {
-            case "code":   launchAbleApp("Visual Studio Code", "Brave Browser"); break;
-            case "brave":  launchAbleApp("Brave Browser");                       break;
-            case "vscode": launchAbleApp("Visual Studio Code");                  break;
-            case "help":   printHelp();                                          break;
-            default:       System.out.println("Unknown command. Please try again.");
+            case "code":
+                launchAbleApp("Visual Studio Code", "Brave Browser");
+                break;
+            case "brave":
+                launchAbleApp("Brave Browser");
+                break;
+            case "vscode":
+                launchAbleApp("Visual Studio Code");
+                break;
+            case "android":
+                launchAbleApp("Android Studio");
+                break;
+            case "chrome":
+                launchAbleApp("Google Chrome");
+                break;
+            case "safari":
+                launchAbleApp("Safari");
+                break;
+            case "xcode":
+                launchAbleApp("Xcode");
+                break;
+            case "whatsapp":
+                launchAbleApp("WhatsApp");
+                break;
+
+            // ---- Combo Commands ----
+            case "morning":
+                launchAbleApp("WhatsApp", "Brave Browser", "Visual Studio Code");
+                break;
+            case "androiddev":
+                launchAbleApp("Android Studio", "Brave Browser");
+                break;
+            case "iosdev":
+                launchAbleApp("Xcode", "Brave Browser");
+                break;
+
+            case "help":
+                printHelp();
+                break;
+            default:
+                System.out.println("Unknown command. Please try again.");
+                break;
         }
     }
 
@@ -98,24 +136,33 @@ public class Applauncher {
         }
     }
 
-    public static void lauchApp(String appName) {
+    public static void lauchApp(String appNames) {
         try {
-            ProcessBuilder pb = new ProcessBuilder("open", "-a", appName);
+            ProcessBuilder pb = new ProcessBuilder("open", "-a", appNames);
             pb.inheritIO();
             pb.start();
-            System.out.println("Launched: " + appName);
+            System.out.println("Launched " + appNames);
         } catch (IOException e) {
-            System.err.println("Failed to launch " + appName + ": " + e.getMessage());
+            System.err.println("Failed to launch " + appNames + ": " + e.getMessage());
         }
     }
 
     public static void printHelp() {
         System.out.println("Available commands:");
-        System.out.println("  code   - Launch VSCode + Brave");
-        System.out.println("  brave  - Launch Brave browser");
-        System.out.println("  vscode - Launch Visual Studio Code");
-        System.out.println("  help   - Show this help message");
-        System.out.println("  exit   - Quit the App Launcher");
+        System.out.println("  code       - Launch VSCode + Brave");
+        System.out.println("  brave      - Launch Brave browser");
+        System.out.println("  vscode     - Launch Visual Studio Code");
+        System.out.println("  android    - Launch Android Studio");
+        System.out.println("  chrome     - Launch Google Chrome");
+        System.out.println("  safari     - Launch Safari");
+        System.out.println("  xcode      - Launch Xcode");
+        System.out.println("  whatsapp   - Launch WhatsApp");
+        System.out.println("  --- Combo Commands ---");
+        System.out.println("  morning    - Launch WhatsApp + Brave + VSCode");
+        System.out.println("  androiddev - Launch Android Studio + Brave");
+        System.out.println("  iosdev     - Launch Xcode + Brave");
+        System.out.println("  help       - Show this help message");
+        System.out.println("  exit       - Quit the App Launcher");
     }
 }
 ```
@@ -135,7 +182,7 @@ javac Applauncher.java
 ```bash
 java Applauncher
 ```
-**What this does:** Runs your program. You should see the launcher prompt. Type `code` to test that VSCode and Brave open correctly.
+**What this does:** Runs your program. You should see the launcher prompt. Type any command to test.
 
 ---
 
@@ -151,15 +198,12 @@ java Applauncher
 ```
 Save with `Ctrl+X` → `Y` → `Enter`
 
-**What this does:** Creates a simple script file that navigates to your project folder and runs the Java program. macOS will use this script on startup.
-
 ---
 
 ### Step 6 — Give the script permission to run
 ```bash
 chmod +x ~/TerminalLauncher/launcher.sh
 ```
-**What this does:** By default, macOS doesn't allow new scripts to execute. This command grants it permission to run as a program.
 
 ---
 
@@ -191,19 +235,12 @@ Paste this inside:
 ```
 Save with `Ctrl+X` → `Y` → `Enter`
 
-**What this does:** Creates a special macOS config file in the `LaunchAgents` folder. macOS reads this folder on every boot and runs whatever is listed inside. This is how apps like Dropbox, Spotify, and others start automatically on your Mac.
-
-- `Label` — a unique name so macOS can identify your agent
-- `ProgramArguments` — the exact command macOS runs on boot (opens Terminal and starts your Java program)
-- `RunAtLoad` — tells macOS to run this immediately on startup
-
 ---
 
 ### Step 8 — Register the Launch Agent with macOS
 ```bash
 launchctl load ~/Library/LaunchAgents/com.user.applauncher.plist
 ```
-**What this does:** Tells macOS "I added a new startup program, please register it." Without this step, macOS won't know the plist file exists even though it's in the right folder.
 
 ---
 
@@ -211,7 +248,6 @@ launchctl load ~/Library/LaunchAgents/com.user.applauncher.plist
 ```bash
 launchctl start com.user.applauncher
 ```
-**What this does:** Triggers your Launch Agent immediately so you can test it without restarting your Mac. A new Terminal window should open with the App Launcher running.
 
 ---
 
@@ -219,11 +255,48 @@ launchctl start com.user.applauncher
 
 | Command | What it does |
 |---|---|
-| `code` | Launch VSCode + Brave Browser |
+| `code` | Launch VSCode + Brave |
 | `vscode` | Launch VSCode only |
 | `brave` | Launch Brave Browser only |
+| `android` | Launch Android Studio only |
+| `chrome` | Launch Google Chrome |
+| `safari` | Launch Safari |
+| `xcode` | Launch Xcode |
+| `whatsapp` | Launch WhatsApp |
+| `morning` | Launch WhatsApp + Brave + VSCode |
+| `androiddev` | Launch Android Studio + Brave |
+| `iosdev` | Launch Xcode + Brave |
 | `help` | Show all available commands |
 | `exit` | Quit the App Launcher |
+
+---
+
+## Making Changes in the Future
+
+Every time you want to update or add something, always follow these 4 steps in order:
+
+**Step 1 — Edit the code** in VSCode.
+
+**Step 2 — Copy the updated file** to the TerminalLauncher folder:
+```bash
+cp "/Users/anshumanrana/Desktop/code/Personal Projects/TerminalLauncher/Applauncher.java" ~/TerminalLauncher/
+```
+
+**Step 3 — Recompile:**
+```bash
+cd ~/TerminalLauncher
+javac Applauncher.java
+```
+
+**Step 4 — Restart the agent:**
+```bash
+launchctl stop com.user.applauncher
+launchctl start com.user.applauncher
+```
+
+> **Golden Rule: Edit → Copy → Compile → Restart. Always in that order.**
+
+If something isn't working after a change, 99% of the time it's because the file wasn't copied or Step 3 was skipped.
 
 ---
 
@@ -238,29 +311,13 @@ launchctl start com.user.applauncher
 
 ---
 
-## Adding More Apps
-
-To add a new app, find its exact name first:
-```bash
-ls /Applications | grep -i "appname"
-```
-
-Then add a new case in the `handleCommand` method in `Applauncher.java`:
-```java
-case "spotify": launchAbleApp("Spotify"); break;
-```
-
-Recompile after any changes:
-```bash
-javac Applauncher.java
-```
-
----
-
 ## Troubleshooting
 
 **`ClassNotFoundException: Applauncher`**
-You haven't compiled the Java file yet. Run `javac Applauncher.java` first.
+You haven't compiled the Java file yet or compiled the wrong file. Run the copy command then `javac Applauncher.java`.
+
+**Old commands showing after update**
+Your `~/TerminalLauncher` folder has the old file. Run the `cp` copy command first then recompile.
 
 **`Unable to find application named 'X'`**
 The app name doesn't match exactly. Run `ls /Applications | grep -i "appname"` to find the correct name.
@@ -269,7 +326,10 @@ The app name doesn't match exactly. Run `ls /Applications | grep -i "appname"` t
 Make sure you ran `launchctl load` in Step 8. Also check that your `.class` file exists in `~/TerminalLauncher`.
 
 **App is in Downloads, not Applications**
-Move it first: `mv "/Users/yourname/Downloads/AppName.app" /Applications/`
+Move it first:
+```bash
+mv "/Users/yourname/Downloads/AppName.app" /Applications/
+```
 
 ---
 
@@ -277,7 +337,8 @@ Move it first: `mv "/Users/yourname/Downloads/AppName.app" /Applications/`
 
 - This launcher opens on **full Mac boot/restart only** — it does NOT trigger when unlocking from sleep
 - App names must match exactly what's in your `/Applications` folder including spaces and capital letters
-- You must recompile (`javac Applauncher.java`) every time you edit the Java code
+- Always copy the latest file from your Desktop project folder to `~/TerminalLauncher` before compiling
+- You must recompile every time you edit the Java code
 
 ---
 
@@ -289,35 +350,6 @@ Move it first: `mv "/Users/yourname/Downloads/AppName.app" /Applications/`
 - Shell scripting basics (`#!/bin/bash`, `chmod`)
 - How macOS Launch Agents work
 - Terminal navigation and file management
-
----
-
----
-
-## Making Changes in the Future
-
-Every time you want to update or add something to the program, always follow these 3 steps in order:
-
-**Step 1 — Edit the code** in VSCode, make whatever changes you need.
-
-**Step 2 — Recompile** — this is the most important step people forget. Your changes won't work until you do this:
-```bash
-cd ~/TerminalLauncher
-javac Applauncher.java
-```
-
-**Step 3 — Restart the agent** so macOS picks up the new version:
-```bash
-launchctl stop com.user.applauncher
-launchctl start com.user.applauncher
-```
-
-> **Golden Rule: Edit → Compile → Restart. Always all 3 steps, always in that order.**
-
-If something isn't working after a change, 99% of the time it's because Step 2 was skipped.
-
-### Adding a New App
-Find the exact app name, add a new `case` line inside `handleCommand`, recompile, and restart. That's it.
 
 ---
 
