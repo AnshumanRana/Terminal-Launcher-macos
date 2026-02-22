@@ -1,30 +1,78 @@
 # Mac Terminal App Launcher 🚀
 
-A Java program that automatically opens Terminal on Mac startup and lets you launch apps with simple commands.
+A Java program that automatically opens Terminal on Mac startup and lets you launch apps with simple commands — now with **Python voice recognition support**.
+
+---
+
+## Project Timeline
+
+**22 Feb 2026 — 3:00 AM**
+Built the entire Terminal-based Java launcher in one late night session. Coffee, music, and a Tony Stark JARVIS scene from Iron Man 2 as inspiration. Completed the Java program, auto-boot system via macOS Launch Agents, and all combo commands. Then went to sleep.
+
+**22 Feb 2026 — 11:00 AM**
+Woke up and added the Python voice recognition script. You can now speak commands out loud and the launcher responds — just like JARVIS.
 
 ---
 
 ## What It Does
 
 - Opens automatically every time your Mac boots
-- Listens for simple text commands in Terminal
-- Type `code` → launches **VSCode + Brave** instantly
+- Listens for typed commands in Terminal
+- Supports voice commands via Python speech recognition
+- Type or say `code` → launches **VSCode + Brave** instantly
 - Supports combo commands to launch multiple apps at once
-- Fully customizable to launch any app you want
+- Fully customizable — add any app or combination you want
+
+---
+
+## How It Works
+
+### Text Mode (Java)
+```
+You type a command in Terminal
+        ↓
+Java reads the input
+        ↓
+ProcessBuilder runs: open -a "App Name"
+        ↓
+App launches
+```
+
+### Voice Mode (Python + Java)
+```
+You speak a command
+        ↓
+Python listens via your mic
+        ↓
+Google Speech API converts voice to text
+        ↓
+Python passes the text command to Java
+        ↓
+Java launches the app
+```
 
 ---
 
 ## Requirements
 
-- MacBook running macOS
+- MacBook running macOS (Apple Silicon or Intel)
 - Java installed (JDK 11 or higher)
+- Python 3 installed
+- Homebrew installed
 - Apps installed in `/Applications`
+- Internet connection (required for voice recognition)
 
 ### Check if Java is installed:
 ```bash
 java -version
 ```
-If not installed, download it from https://adoptium.net
+
+### Check if Python is installed:
+```bash
+python3 --version
+```
+
+If not installed, download Java from https://adoptium.net
 
 ---
 
@@ -35,7 +83,8 @@ If not installed, download it from https://adoptium.net
 │
 ├── Applauncher.java          # Main Java source code
 ├── Applauncher.class         # Compiled Java file (auto-generated)
-└── launcher.sh               # Shell script to run the program
+├── launcher.sh               # Shell script to run the program
+└── VoiceLauncher.py          # Python voice recognition script
 
 ~/Library/LaunchAgents/
 └── com.user.applauncher.plist  # macOS startup config file
@@ -43,19 +92,18 @@ If not installed, download it from https://adoptium.net
 
 ---
 
-## Installation & Setup
+## Part 1 — Java Terminal Launcher Setup
 
 ### Step 1 — Create the project folder
 ```bash
 mkdir ~/TerminalLauncher
 cd ~/TerminalLauncher
 ```
-**What this does:** Creates a folder called `TerminalLauncher` in your home directory and navigates into it.
 
 ---
 
 ### Step 2 — Create the Java file
-Create a file called `Applauncher.java` and paste the following code:
+Create `Applauncher.java` and paste the following code:
 
 ```java
 import java.io.IOException;
@@ -174,7 +222,6 @@ public class Applauncher {
 cd ~/TerminalLauncher
 javac Applauncher.java
 ```
-**What this does:** Converts your Java source code into a `.class` file that Java can actually run. You must do this every time you edit the code.
 
 ---
 
@@ -182,7 +229,6 @@ javac Applauncher.java
 ```bash
 java Applauncher
 ```
-**What this does:** Runs your program. You should see the launcher prompt. Type any command to test.
 
 ---
 
@@ -237,17 +283,114 @@ Save with `Ctrl+X` → `Y` → `Enter`
 
 ---
 
-### Step 8 — Register the Launch Agent with macOS
+### Step 8 — Register and test the Launch Agent
 ```bash
 launchctl load ~/Library/LaunchAgents/com.user.applauncher.plist
+launchctl start com.user.applauncher
 ```
 
 ---
 
-### Step 9 — Test the auto-start without rebooting
+## Part 2 — Python Voice Launcher Setup
+
+### Step 1 — Install dependencies
 ```bash
-launchctl start com.user.applauncher
+brew install portaudio flac
+pip3 install SpeechRecognition pyaudio
 ```
+
+**Why portaudio?** pyaudio needs it to access your Mac's microphone.
+**Why flac?** SpeechRecognition uses it to process audio. The bundled version doesn't work on Apple Silicon Macs so we install the correct one via Homebrew.
+
+---
+
+### Step 2 — Verify installation
+```bash
+python3 -c "import speech_recognition; import pyaudio; print('All OK')"
+```
+
+Should print `All OK`.
+
+---
+
+### Step 3 — Create the Python voice script
+Create `VoiceLauncher.py` and paste the following code:
+
+```python
+import speech_recognition as sr
+import subprocess
+import time
+
+def listen_for_command():
+    recognizer = sr.Recognizer()
+    mic = sr.Microphone()
+
+    with mic as source:
+        print("🎙️  Adjusting for background noise...")
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+        print("✅  Listening... Speak your command!")
+
+        try:
+            audio = recognizer.listen(source, timeout=5)
+            command = recognizer.recognize_google(audio).lower()
+            print(f"🗣️  You said: {command}")
+            return command
+        except sr.WaitTimeoutError:
+            print("⏱️  No speech detected. Try again.")
+            return None
+        except sr.UnknownValueError:
+            print("❓  Could not understand. Try again.")
+            return None
+        except sr.RequestError:
+            print("🌐  Internet connection required for voice recognition.")
+            return None
+
+def send_command_to_java(command):
+    valid_commands = [
+        "code", "brave", "vscode", "android",
+        "chrome", "safari", "xcode", "whatsapp",
+        "morning", "androiddev", "iosdev", "help", "exit"
+    ]
+
+    if command in valid_commands:
+        print(f"⚡  Sending '{command}' to App Launcher...")
+        subprocess.run(["java", "Applauncher"],
+                      input=command,
+                      text=True,
+                      cwd="/Users/anshumanrana/TerminalLauncher")
+    else:
+        print(f"❌  '{command}' is not a valid command. Try again.")
+
+def main():
+    print("======== Voice App Launcher ========")
+    print("Speak a command to launch your apps!")
+    print("Say 'exit' to quit.\n")
+
+    while True:
+        command = listen_for_command()
+
+        if command:
+            if command == "exit":
+                print("👋  Goodbye!")
+                break
+            send_command_to_java(command)
+
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+### Step 4 — Copy to TerminalLauncher folder and run
+```bash
+cp "/Users/anshumanrana/Desktop/code/Personal Projects/TerminalLauncher/VoiceLauncher.py" ~/TerminalLauncher/
+cd ~/TerminalLauncher
+python3 VoiceLauncher.py
+```
+
+Speak any command like `morning` or `brave` and the apps will launch!
 
 ---
 
@@ -273,11 +416,11 @@ launchctl start com.user.applauncher
 
 ## Making Changes in the Future
 
-Every time you want to update or add something, always follow these 4 steps in order:
+Every time you update the Java code follow these 4 steps:
 
-**Step 1 — Edit the code** in VSCode.
+**Step 1 — Edit** the code in VSCode.
 
-**Step 2 — Copy the updated file** to the TerminalLauncher folder:
+**Step 2 — Copy** the updated file:
 ```bash
 cp "/Users/anshumanrana/Desktop/code/Personal Projects/TerminalLauncher/Applauncher.java" ~/TerminalLauncher/
 ```
@@ -296,7 +439,7 @@ launchctl start com.user.applauncher
 
 > **Golden Rule: Edit → Copy → Compile → Restart. Always in that order.**
 
-If something isn't working after a change, 99% of the time it's because the file wasn't copied or Step 3 was skipped.
+For Python changes just copy the updated file and run it again — no compilation needed.
 
 ---
 
@@ -304,8 +447,10 @@ If something isn't working after a change, 99% of the time it's because the file
 
 | Command | What it does |
 |---|---|
-| `launchctl start com.user.applauncher` | Start the agent manually |
-| `launchctl stop com.user.applauncher` | Stop the agent |
+| `java Applauncher` | Run text launcher manually |
+| `python3 VoiceLauncher.py` | Run voice launcher manually |
+| `launchctl start com.user.applauncher` | Start boot agent manually |
+| `launchctl stop com.user.applauncher` | Stop boot agent |
 | `launchctl unload ~/Library/LaunchAgents/com.user.applauncher.plist` | Disable auto-start permanently |
 | `launchctl load ~/Library/LaunchAgents/com.user.applauncher.plist` | Re-enable auto-start |
 
@@ -314,43 +459,45 @@ If something isn't working after a change, 99% of the time it's because the file
 ## Troubleshooting
 
 **`ClassNotFoundException: Applauncher`**
-You haven't compiled the Java file yet or compiled the wrong file. Run the copy command then `javac Applauncher.java`.
+Run the copy command then `javac Applauncher.java`.
 
 **Old commands showing after update**
-Your `~/TerminalLauncher` folder has the old file. Run the `cp` copy command first then recompile.
+Run the `cp` copy command first then recompile and restart the agent.
 
 **`Unable to find application named 'X'`**
-The app name doesn't match exactly. Run `ls /Applications | grep -i "appname"` to find the correct name.
+Run `ls /Applications | grep -i "appname"` to find the exact name.
+
+**`Bad CPU type in executable: flac-mac`**
+You are on Apple Silicon. Run `brew install flac` to fix it.
+
+**Voice not being recognized**
+Make sure you have an internet connection. Google Speech API requires it. Also check mic permissions in System Settings → Privacy & Security → Microphone.
 
 **Terminal doesn't open on boot**
-Make sure you ran `launchctl load` in Step 8. Also check that your `.class` file exists in `~/TerminalLauncher`.
-
-**App is in Downloads, not Applications**
-Move it first:
-```bash
-mv "/Users/yourname/Downloads/AppName.app" /Applications/
-```
+Make sure you ran `launchctl load` and that your `.class` file exists in `~/TerminalLauncher`.
 
 ---
 
 ## Important Notes
 
-- This launcher opens on **full Mac boot/restart only** — it does NOT trigger when unlocking from sleep
-- App names must match exactly what's in your `/Applications` folder including spaces and capital letters
-- Always copy the latest file from your Desktop project folder to `~/TerminalLauncher` before compiling
-- You must recompile every time you edit the Java code
+- The launcher opens on **full Mac boot/restart only** — not when unlocking from sleep
+- Voice recognition requires an **internet connection**
+- App names must match exactly what's in `/Applications` including spaces and capital letters
+- Always copy the latest file from your Desktop to `~/TerminalLauncher` before compiling
+- Python changes don't need recompilation — just copy and run
 
 ---
 
 ## What You Learn Building This
 
-- Java `Scanner` for reading user input
-- Java `ProcessBuilder` for launching external programs
-- `switch` statements and method organization
+- Java `Scanner` and `ProcessBuilder` for input and launching programs
+- `switch` statements and method organization in Java
 - Shell scripting basics (`#!/bin/bash`, `chmod`)
 - How macOS Launch Agents work
+- Python speech recognition and microphone access
+- How to connect two different programs (Python + Java) together
 - Terminal navigation and file management
 
 ---
 
-*Built with Java on macOS. No external libraries required.*
+*Built with Java + Python on macOS. No paid libraries or APIs required.*
